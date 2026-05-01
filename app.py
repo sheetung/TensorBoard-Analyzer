@@ -1,5 +1,5 @@
 """
-Flare Analyzer - 训练分析与 AI 诊断工具
+TensorBoard Analyzer - 训练分析与 AI 诊断工具
 基于 Streamlit 的 Web UI，支持 TensorBoard 数据对比和大模型调参建议。
 """
 
@@ -14,7 +14,7 @@ from llm_advisor import query_llm
 
 # 页面配置
 st.set_page_config(
-    page_title="Flare Analyzer",
+    page_title="TensorBoard Analyzer",
     page_icon="📊",
     layout="wide",
 )
@@ -124,7 +124,7 @@ def main():
 
     # ========== 侧边栏 ==========
     with st.sidebar:
-        st.title("📊 Flare Analyzer")
+        st.title("📊 TensorBoard Analyzer")
         st.caption("训练对比分析 + AI 诊断")
 
         # 日志目录选择
