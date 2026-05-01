@@ -105,9 +105,14 @@ def format_run_for_llm(run):
     return "\n".join(lines)
 
 
-def build_prompt(runs, diagnostics_list, comparison_context=""):
+def build_prompt(runs, diagnostics_list, comparison_context="", user_prompt=""):
     """构建完整的 LLM prompt。"""
-    parts = [SYSTEM_PROMPT, "\n---\n"]
+    parts = [SYSTEM_PROMPT]
+
+    if user_prompt.strip():
+        parts.append(f"\n## 用户补充说明\n{user_prompt.strip()}")
+
+    parts.append("\n---\n")
 
     if comparison_context:
         parts.append(comparison_context)
@@ -124,7 +129,7 @@ def build_prompt(runs, diagnostics_list, comparison_context=""):
     return "\n".join(parts)
 
 
-def query_llm(runs, diagnostics_list, config=None, comparison_context=""):
+def query_llm(runs, diagnostics_list, config=None, comparison_context="", user_prompt=""):
     """
     调用 LLM 进行训练诊断。
 
@@ -133,6 +138,7 @@ def query_llm(runs, diagnostics_list, config=None, comparison_context=""):
         diagnostics_list: 对应的诊断结果列表
         config: LLM 配置 dict（provider, model, api_key, base_url）
         comparison_context: 额外的对比上下文
+        user_prompt: 用户自定义补充提示
 
     Returns:
         LLM 生成的建议文本
@@ -152,7 +158,7 @@ def query_llm(runs, diagnostics_list, config=None, comparison_context=""):
         return "错误：请先在设置页面配置 API Key。"
 
     messages = [
-        {"role": "user", "content": build_prompt(runs, diagnostics_list, comparison_context)}
+        {"role": "user", "content": build_prompt(runs, diagnostics_list, comparison_context, user_prompt)}
     ]
 
     try:

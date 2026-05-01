@@ -248,12 +248,21 @@ def main():
                 key="llm_base_url",
             )
 
+            user_prompt = st.text_area(
+                "用户自定义提示（可选）",
+                value=st.session_state.llm_config.get("user_prompt", ""),
+                placeholder="描述你的项目背景、训练目标、特殊约束等，帮助 AI 给出更精准的建议",
+                key="llm_user_prompt",
+                height=100,
+            )
+
             if st.button("保存 LLM 配置"):
                 config = {
                     "provider": provider,
                     "model": model,
                     "api_key": api_key,
                     "base_url": base_url,
+                    "user_prompt": user_prompt,
                 }
                 st.session_state.llm_config = config
                 save_llm_config(config)
@@ -344,6 +353,7 @@ def main():
                         diagnostics_list=st.session_state.diagnostics,
                         config=st.session_state.llm_config,
                         comparison_context=comparison,
+                        user_prompt=st.session_state.llm_config.get("user_prompt", ""),
                     )
 
                 st.markdown(result)
@@ -354,6 +364,7 @@ def main():
                         runs,
                         st.session_state.diagnostics,
                         comparison,
+                        st.session_state.llm_config.get("user_prompt", ""),
                     )
                     st.code(prompt, language="text")
 
