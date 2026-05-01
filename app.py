@@ -6,9 +6,12 @@ TensorBoard Analyzer - 训练分析与 AI 诊断工具
 import os
 import sys
 import json
+from dotenv import load_dotenv
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+
+load_dotenv()
 
 from analyzer import scan_log_dirs, load_run, compute_diagnostics, KEY_METRICS
 from llm_advisor import query_llm, PROVIDER_PRESETS
@@ -28,6 +31,7 @@ DEFAULT_LLM_CONFIG = {
     "model": "deepseek-chat",
     "api_key": "",
     "base_url": "",
+    "user_prompt": os.environ.get("USER_PROMPT", ""),
 }
 
 
@@ -60,7 +64,10 @@ if "diagnostics" not in st.session_state:
 
 
 def find_logs_dir():
-    """查找当前目录及上级目录下的 logs 文件夹。"""
+    """查找 logs 目录，优先使用 .env 中的 LOGS_DIR 配置。"""
+    env_dir = os.environ.get("LOGS_DIR", "")
+    if env_dir and os.path.isdir(env_dir):
+        return os.path.abspath(env_dir)
     candidates = [
         os.path.join(os.path.dirname(__file__), "logs"),
         os.path.join(os.path.dirname(__file__), "..", "logs"),

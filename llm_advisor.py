@@ -5,6 +5,9 @@ LLM 诊断模块。
 """
 
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # 默认配置
@@ -36,7 +39,7 @@ PROVIDER_PRESETS = {
     },
 }
 
-SYSTEM_PROMPT = """你是一个强化学习训练专家，专门分析 PPO 等 RL 算法的训练表现。
+DEFAULT_SYSTEM_PROMPT = """你是一个强化学习训练专家，专门分析 PPO 等 RL 算法的训练表现。
 
 你的任务是：
 1. 根据提供的训练指标和配置参数，诊断训练中的问题
@@ -52,6 +55,8 @@ SYSTEM_PROMPT = """你是一个强化学习训练专家，专门分析 PPO 等 R
      原因和预期效果
 
 不要在每条建议前重复"参数名 → 当前值 → 建议值 → 预期效果"这个标题。"""
+
+SYSTEM_PROMPT = os.environ.get("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
 
 
 def format_config_for_llm(config):

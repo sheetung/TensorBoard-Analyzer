@@ -33,6 +33,22 @@ python -m venv .venv
 source .venv/bin/activate
 
 uv pip install -r requirements.txt
+
+# 创建环境变量配置
+cp .env.example .env
+```
+
+复制后可按需编辑 `.env`：
+
+```bash
+# 日志目录（留空则自动扫描上级目录下的 logs 文件夹）
+LOGS_DIR=/path/to/your/logs
+
+# System Prompt（AI 角色设定，一般不需要改）
+SYSTEM_PROMPT=...
+
+# User Prompt（项目背景和特殊需求描述）
+USER_PROMPT=我正在训练四旋翼无人机的绳索悬挂负载系统...
 ```
 
 ## 使用
