@@ -5,6 +5,7 @@ TensorBoard Analyzer - 训练分析与 AI 诊断工具
 
 import os
 import sys
+import json
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -19,14 +20,39 @@ st.set_page_config(
     layout="wide",
 )
 
+# 配置文件路径
+CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "llm_config.json")
+
+DEFAULT_LLM_CONFIG = {
+    "provider": "deepseek",
+    "model": "deepseek-chat",
+    "api_key": "",
+    "base_url": "",
+}
+
+
+def load_llm_config():
+    """从 JSON 文件加载 LLM 配置。"""
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                saved = json.load(f)
+            # 合并默认值，防止缺字段
+            return {**DEFAULT_LLM_CONFIG, **saved}
+        except Exception:
+            pass
+    return DEFAULT_LLM_CONFIG.copy()
+
+
+def save_llm_config(config):
+    """保存 LLM 配置到 JSON 文件。"""
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+
+
 # 初始化 session state
 if "llm_config" not in st.session_state:
-    st.session_state.llm_config = {
-        "provider": "anthropic",
-        "model": "claude-sonnet-4-20250514",
-        "api_key": "",
-        "base_url": "",
-    }
+    st.session_state.llm_config = load_llm_config()
 if "runs" not in st.session_state:
     st.session_state.runs = []
 if "diagnostics" not in st.session_state:
@@ -206,13 +232,15 @@ def main():
             )
 
             if st.button("保存 LLM 配置"):
-                st.session_state.llm_config = {
+                config = {
                     "provider": provider,
                     "model": model,
                     "api_key": api_key,
                     "base_url": base_url,
                 }
-                st.success("已保存")
+                st.session_state.llm_config = config
+                save_llm_config(config)
+                st.success("已保存（下次打开自动加载）")
 
     # ========== 主区域 ==========
     if not st.session_state.runs:
@@ -240,13 +268,7 @@ def main():
         if not available_metrics:
             st.warning("无训练指标数据")
         else:
-            default_metrics = [
-                "Train/mean_reward",
-                "Loss/value_function",
-                "Loss/surrogate",
-                "Episode/rew_crash",
-                "Episode/rew_cable_angle_safety",
-            ]
+            default_metrics = available_metrics
             selected_metrics = st.multiselect(
                 "选择要对比的指标",
                 options=available_metrics,
