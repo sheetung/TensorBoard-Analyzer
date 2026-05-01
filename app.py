@@ -60,16 +60,16 @@ if "diagnostics" not in st.session_state:
 
 
 def find_logs_dir():
-    """查找 logs 目录，优先在 Flare 项目下查找。"""
+    """查找当前目录及上级目录下的 logs 文件夹。"""
     candidates = [
-        os.path.join(os.path.dirname(__file__), "..", "Flare", "logs"),
         os.path.join(os.path.dirname(__file__), "logs"),
+        os.path.join(os.path.dirname(__file__), "..", "logs"),
         "logs",
     ]
     for path in candidates:
         if os.path.isdir(path):
             return os.path.abspath(path)
-    return os.path.join(os.path.dirname(__file__), "..", "Flare", "logs")
+    return os.path.join(os.path.dirname(__file__), "logs")
 
 
 def render_comparison_chart(runs, metric_key):
@@ -158,7 +158,7 @@ def main():
         # 自动扫描所有可能的 logs 目录
         logs_candidates = []
         for root_dir in [
-            os.path.join(os.path.dirname(__file__), "..", "Flare"),
+            os.path.join(os.path.dirname(__file__), ".."),
             os.path.dirname(__file__),
             ".",
         ]:

@@ -169,15 +169,16 @@ def compute_diagnostics(run: RunData):
             suggestions.append("增大 crash 惩罚权重（如 -10 → -20）")
             suggestions.append("检查 max_safety_violations 是否过低")
 
-    # 4. 缆绳角度惩罚高
-    safety = run.scalars.get("Episode/rew_cable_angle_safety", {}).get("values", [])
-    if safety:
-        safety_arr = np.array(safety)
-        final_safety = np.mean(safety_arr[-50:]) if len(safety_arr) > 50 else np.mean(safety_arr)
-        if abs(final_safety) > 0.01:
-            issues.append(f"缆绳角度惩罚高 ({final_safety:.4f})")
-            suggestions.append("增大 max_safe_cable_angle_deg（如 30 → 45）")
-            suggestions.append("适当降低 cable_angle_safety 权重")
+    # 4. 安全约束惩罚高（通用检测：任何 safety 相关的 reward 项）
+    for safety_key in ["Episode/rew_cable_angle_safety", "Episode/rew_safety", "Episode/rew_constraint"]:
+        safety = run.scalars.get(safety_key, {}).get("values", [])
+        if safety:
+            safety_arr = np.array(safety)
+            final_safety = np.mean(safety_arr[-50:]) if len(safety_arr) > 50 else np.mean(safety_arr)
+            if abs(final_safety) > 0.01:
+                issues.append(f"安全约束惩罚高 {safety_key} ({final_safety:.4f})")
+                suggestions.append("检查安全约束阈值是否过紧，适当放宽")
+                suggestions.append("适当降低该惩罚项的权重")
 
     # 5. 动作噪声不收敛
     noise = run.scalars.get("Policy/mean_noise_std", {}).get("values", [])

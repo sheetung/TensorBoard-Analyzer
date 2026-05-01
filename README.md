@@ -4,23 +4,20 @@
 
 ## 功能
 
-- **对比曲线**：选择多个训练目录，展示 reward / loss / crash 等指标的对比折线图
-- **配置参数**：查看每次训练的完整配置（env_cfg / reward_cfg / train_cfg 等）
+- **对比曲线**：选择多个训练目录，展示 reward / loss 等指标的对比折线图
+- **配置参数**：查看每次训练的完整配置
 - **自动诊断**：规则引擎检测常见问题（reward 不增长、碰撞率高、噪声不收敛等）并给出调参建议
 - **AI 分析**：将训练指标 + 配置发送给大模型，生成针对性的调参建议
 
 ## 安装
 
 ```bash
-# 克隆仓库
 git clone git@github.com:sheetung/TensorBoard-Analyzer.git
 cd TensorBoard-Analyzer
 
-# 创建虚拟环境（推荐）
 python -m venv .venv
 source .venv/bin/activate
 
-# 安装依赖
 uv pip install -r requirements.txt
 ```
 
@@ -34,7 +31,7 @@ streamlit run app.py
 
 ### 基本流程
 
-1. 左侧栏自动扫描 `Flare/logs/` 目录下的训练日志
+1. 左侧栏自动扫描上级目录下的 logs 文件夹
 2. 选择要对比的训练（支持多选）
 3. 点击「加载数据」
 4. 在 Tab 页中查看对比曲线、配置参数、自动诊断结果
@@ -56,7 +53,7 @@ streamlit run app.py
 ## 项目结构
 
 ```
-tensorboard-analyzer/
+TensorBoard-Analyzer/
 ├── app.py            # Streamlit 主入口（4 个 Tab）
 ├── analyzer.py       # TensorBoard 数据读取 + 规则诊断
 ├── llm_advisor.py    # 多模型 LLM 调用（OpenAI / Anthropic SDK）
@@ -73,6 +70,6 @@ tensorboard-analyzer/
 | Reward 下降 | 后半程均值低于前半程 90% | 降低学习率 / 增大 entropy |
 | 局部最优 | Reward 波动小但低于峰值 | 增大噪声 / 增大网络 |
 | 碰撞率高 | crash 惩罚绝对值 > 0.5 | 增大 crash 惩罚权重 |
-| 缆绳角度惩罚高 | safety 惩罚绝对值 > 0.01 | 增大安全角度阈值 |
+| 安全约束惩罚高 | safety 惩罚绝对值 > 0.01 | 放宽安全阈值 / 降低惩罚权重 |
 | 噪声不收敛 | 最终噪声 > 初始噪声 80% | 增加训练轮数 / 调学习率 |
 | Value loss 不下降 | 最终 loss > 初始 loss 90% | 增大 Critic 网络 / 检查奖励尺度 |
