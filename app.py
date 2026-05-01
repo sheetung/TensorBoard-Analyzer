@@ -155,7 +155,19 @@ def main():
 
         # 日志目录选择
         st.subheader("日志目录")
-        logs_path = st.text_input("logs 路径", value=logs_dir, key="logs_path")
+        # 自动扫描所有可能的 logs 目录
+        logs_candidates = []
+        for root_dir in [
+            os.path.join(os.path.dirname(__file__), "..", "Flare"),
+            os.path.dirname(__file__),
+            ".",
+        ]:
+            candidate = os.path.join(root_dir, "logs")
+            if os.path.isdir(candidate):
+                logs_candidates.append(os.path.abspath(candidate))
+        if logs_dir not in logs_candidates:
+            logs_candidates.insert(0, logs_dir)
+        logs_path = st.selectbox("logs 路径", logs_candidates, key="logs_path")
 
         available_runs = scan_log_dirs(logs_path)
 
