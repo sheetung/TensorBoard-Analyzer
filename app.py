@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from analyzer import scan_log_dirs, load_run, compute_diagnostics, KEY_METRICS
-from llm_advisor import query_llm
+from llm_advisor import query_llm, RECOMMENDED_MODELS
 
 # 页面配置
 st.set_page_config(
@@ -170,11 +170,34 @@ def main():
                 ),
                 key="llm_provider",
             )
-            model = st.text_input(
+            recommended = RECOMMENDED_MODELS.get(provider, [])
+            model_options = recommended + ["自定义"]
+            # 尝试匹配当前模型到推荐列表
+            current_model = st.session_state.llm_config["model"]
+            # 去掉已有的 provider 前缀再匹配
+            clean_model = current_model
+            for pfx in ("anthropic/", "openai/", "deepseek/", "ollama/"):
+                if clean_model.startswith(pfx):
+                    clean_model = clean_model[len(pfx):]
+            if clean_model in model_options:
+                default_idx = model_options.index(clean_model)
+            else:
+                default_idx = len(model_options) - 1  # "自定义"
+            model_choice = st.selectbox(
                 "Model",
-                value=st.session_state.llm_config["model"],
-                key="llm_model",
+                model_options,
+                index=default_idx,
+                key="llm_model_choice",
             )
+            if model_choice == "自定义":
+                model = st.text_input(
+                    "模型名称",
+                    value=clean_model,
+                    key="llm_model_custom",
+                    placeholder="如 deepseek-chat",
+                )
+            else:
+                model = model_choice
             api_key = st.text_input(
                 "API Key",
                 value=st.session_state.llm_config["api_key"],

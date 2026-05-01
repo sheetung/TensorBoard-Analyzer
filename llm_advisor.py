@@ -18,6 +18,14 @@ DEFAULT_CONFIG = {
     "temperature": 0.3,
 }
 
+# 各 provider 推荐的模型名（不含前缀，代码会自动补全）
+RECOMMENDED_MODELS = {
+    "anthropic": ["claude-sonnet-4-20250514", "claude-opus-4-20250514", "claude-haiku-4-20250414"],
+    "openai": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+    "deepseek": ["deepseek-chat", "deepseek-coder"],
+    "ollama": ["llama3", "qwen2", "mistral"],
+}
+
 SYSTEM_PROMPT = """你是一个强化学习训练专家，专门分析 PPO 算法在四旋翼无人机-缆绳-负载系统上的训练表现。
 
 你的任务是：
@@ -147,8 +155,23 @@ def query_llm(runs, diagnostics_list, config=None, comparison_context=""):
     if base_url:
         kwargs["api_base"] = base_url
 
-    # 根据 provider 设置 api_key 的环境变量
+    # 根据 provider 设置 api_key 的环境变量，并自动补全模型前缀
     provider = cfg["provider"]
+    model = cfg["model"]
+
+    # 自动补全 litellm 所需的 provider 前缀
+    PROVIDER_PREFIXES = {
+        "anthropic": "anthropic/",
+        "openai": "openai/",
+        "deepseek": "deepseek/",
+        "ollama": "ollama/",
+        "huggingface": "huggingface/",
+    }
+    prefix = PROVIDER_PREFIXES.get(provider, "")
+    if prefix and not model.startswith(prefix):
+        model = prefix + model
+    kwargs["model"] = model
+
     if provider == "anthropic":
         os.environ["ANTHROPIC_API_KEY"] = api_key
     elif provider in ("openai", "deepseek"):
