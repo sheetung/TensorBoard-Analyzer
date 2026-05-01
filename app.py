@@ -167,7 +167,12 @@ def main():
                 logs_candidates.append(os.path.abspath(candidate))
         if logs_dir not in logs_candidates:
             logs_candidates.insert(0, logs_dir)
-        logs_path = st.selectbox("logs 路径", logs_candidates, key="logs_path")
+        logs_candidates.append("自定义路径")
+        logs_choice = st.selectbox("logs 路径", logs_candidates, key="logs_path")
+        if logs_choice == "自定义路径":
+            logs_path = st.text_input("输入自定义路径", key="logs_path_custom")
+        else:
+            logs_path = logs_choice
 
         available_runs = scan_log_dirs(logs_path)
 
