@@ -12,7 +12,15 @@
 ## 安装
 
 ```bash
-cd ~/flare_ws/tensorboard-analyzer
+# 克隆仓库
+git clone git@github.com:sheetung/TensorBoard-Analyzer.git
+cd TensorBoard-Analyzer
+
+# 创建虚拟环境（推荐）
+python -m venv .venv
+source .venv/bin/activate
+
+# 安装依赖
 pip install -r requirements.txt
 ```
 
@@ -38,18 +46,12 @@ streamlit run app.py
 
 | Provider | 模型示例 | 说明 |
 |----------|----------|------|
-| anthropic | claude-sonnet-4-20250514 | Anthropic Claude |
+| deepseek | deepseek-v4-flash | DeepSeek |
 | openai | gpt-4o | OpenAI GPT |
-| deepseek | deepseek-chat | DeepSeek |
+| anthropic | claude-sonnet-4-20250514 | Anthropic Claude |
 | ollama | llama3 | 本地部署 |
 
-在左侧栏「AI 诊断设置」中填写 API Key 即可，也可通过环境变量配置：
-
-```bash
-export LLM_PROVIDER=anthropic
-export LLM_MODEL=claude-sonnet-4-20250514
-export LLM_API_KEY=your-key-here
-```
+在左侧栏「AI 诊断设置」中填写 API Key 即可，首次保存后自动持久化到 `llm_config.json`（已加入 .gitignore）。
 
 ## 项目结构
 
@@ -57,10 +59,11 @@ export LLM_API_KEY=your-key-here
 tensorboard-analyzer/
 ├── app.py            # Streamlit 主入口（4 个 Tab）
 ├── analyzer.py       # TensorBoard 数据读取 + 规则诊断
-├── llm_advisor.py    # 多模型 LLM 调用（基于 litellm）
+├── llm_advisor.py    # 多模型 LLM 调用（OpenAI / Anthropic SDK）
 ├── requirements.txt  # Python 依赖
 ├── .env.example      # 环境变量模板
-└── .gitignore
+├── .gitignore
+└── README.md
 ```
 
 ## 自动诊断规则
