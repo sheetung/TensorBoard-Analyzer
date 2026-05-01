@@ -10,7 +10,7 @@ import os
 # 默认配置
 DEFAULT_CONFIG = {
     "provider": "deepseek",         # deepseek / openai / anthropic / ollama
-    "model": "deepseek-chat",
+    "model": "deepseek-v4-flash",
     "api_key": "",
     "base_url": "",                 # 自定义 API 地址（Ollama 等）
     "temperature": 0.3,
@@ -19,7 +19,7 @@ DEFAULT_CONFIG = {
 # 各 provider 推荐的模型名和默认 base_url
 PROVIDER_PRESETS = {
     "deepseek": {
-        "models": ["deepseek-chat", "deepseek-coder", "deepseek-reasoner"],
+        "models": ["deepseek-v4-flash", "deepseek-v4-pro"],
         "base_url": "https://api.deepseek.com",
     },
     "openai": {
