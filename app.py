@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from analyzer import scan_log_dirs, load_run, compute_diagnostics, KEY_METRICS
-from llm_advisor import query_llm, RECOMMENDED_MODELS
+from llm_advisor import query_llm, PROVIDER_PRESETS
 
 # 页面配置
 st.set_page_config(
@@ -164,23 +164,17 @@ def main():
         with st.expander("LLM 配置", expanded=False):
             provider = st.selectbox(
                 "Provider",
-                ["anthropic", "openai", "deepseek", "ollama"],
-                index=["anthropic", "openai", "deepseek", "ollama"].index(
+                ["deepseek", "openai", "anthropic", "ollama"],
+                index=["deepseek", "openai", "anthropic", "ollama"].index(
                     st.session_state.llm_config["provider"]
                 ),
                 key="llm_provider",
             )
-            recommended = RECOMMENDED_MODELS.get(provider, [])
-            model_options = recommended + ["自定义"]
-            # 尝试匹配当前模型到推荐列表
+            preset = PROVIDER_PRESETS.get(provider, {})
+            model_options = preset.get("models", []) + ["自定义"]
             current_model = st.session_state.llm_config["model"]
-            # 去掉已有的 provider 前缀再匹配
-            clean_model = current_model
-            for pfx in ("anthropic/", "openai/", "deepseek/", "ollama/"):
-                if clean_model.startswith(pfx):
-                    clean_model = clean_model[len(pfx):]
-            if clean_model in model_options:
-                default_idx = model_options.index(clean_model)
+            if current_model in model_options:
+                default_idx = model_options.index(current_model)
             else:
                 default_idx = len(model_options) - 1  # "自定义"
             model_choice = st.selectbox(
@@ -192,7 +186,7 @@ def main():
             if model_choice == "自定义":
                 model = st.text_input(
                     "模型名称",
-                    value=clean_model,
+                    value=current_model,
                     key="llm_model_custom",
                     placeholder="如 deepseek-chat",
                 )
@@ -204,9 +198,10 @@ def main():
                 type="password",
                 key="llm_api_key",
             )
+            default_base_url = preset.get("base_url", "")
             base_url = st.text_input(
-                "Base URL（可选，Ollama 等自定义地址）",
-                value=st.session_state.llm_config["base_url"],
+                "Base URL（留空使用默认地址）",
+                value=st.session_state.llm_config.get("base_url", "") or default_base_url,
                 key="llm_base_url",
             )
 

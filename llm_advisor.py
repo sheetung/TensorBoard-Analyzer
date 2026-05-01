@@ -1,29 +1,39 @@
 """
 LLM 诊断模块。
-支持多种大模型 provider（Anthropic / OpenAI / DeepSeek / Ollama 等），
-根据训练指标和配置生成调参建议。
+使用 OpenAI SDK 调用 OpenAI 兼容接口（OpenAI / DeepSeek / Ollama 等），
+使用 Anthropic SDK 调用 Claude，根据训练指标和配置生成调参建议。
 """
 
 import os
-import json
-from litellm import completion
 
 
 # 默认配置
 DEFAULT_CONFIG = {
-    "provider": "anthropic",        # anthropic / openai / deepseek / ollama
-    "model": "claude-sonnet-4-20250514",
+    "provider": "deepseek",         # deepseek / openai / anthropic / ollama
+    "model": "deepseek-chat",
     "api_key": "",
     "base_url": "",                 # 自定义 API 地址（Ollama 等）
     "temperature": 0.3,
 }
 
-# 各 provider 推荐的模型名（不含前缀，代码会自动补全）
-RECOMMENDED_MODELS = {
-    "anthropic": ["claude-sonnet-4-20250514", "claude-opus-4-20250514", "claude-haiku-4-20250414"],
-    "openai": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
-    "deepseek": ["deepseek-chat", "deepseek-coder"],
-    "ollama": ["llama3", "qwen2", "mistral"],
+# 各 provider 推荐的模型名和默认 base_url
+PROVIDER_PRESETS = {
+    "deepseek": {
+        "models": ["deepseek-chat", "deepseek-coder", "deepseek-reasoner"],
+        "base_url": "https://api.deepseek.com",
+    },
+    "openai": {
+        "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+        "base_url": "https://api.openai.com/v1",
+    },
+    "anthropic": {
+        "models": ["claude-sonnet-4-20250514", "claude-opus-4-20250514", "claude-haiku-4-20250414"],
+        "base_url": "",
+    },
+    "ollama": {
+        "models": ["llama3", "qwen2", "mistral"],
+        "base_url": "http://localhost:11434/v1",
+    },
 }
 
 SYSTEM_PROMPT = """你是一个强化学习训练专家，专门分析 PPO 算法在四旋翼无人机-缆绳-负载系统上的训练表现。
@@ -82,7 +92,6 @@ def format_run_for_llm(run):
     lines = [f"## 训练运行: {run.name}"]
     lines.append(f"总迭代数: {run.total_iters}")
 
-    # 关键指标摘要
     for key, values in run.scalars.items():
         if not values.get("values"):
             continue
@@ -129,58 +138,56 @@ def query_llm(runs, diagnostics_list, config=None, comparison_context=""):
         LLM 生成的建议文本
     """
     cfg = {**DEFAULT_CONFIG, **(config or {})}
-
-    # 从环境变量 fallback
+    provider = cfg["provider"]
+    model = cfg["model"]
     api_key = cfg["api_key"] or os.environ.get("LLM_API_KEY", "")
-    base_url = cfg["base_url"] or os.environ.get("LLM_BASE_URL", "")
+    base_url = cfg["base_url"]
 
-    if not api_key:
+    # 从 provider 预设中取默认 base_url（用户未自定义时）
+    preset = PROVIDER_PRESETS.get(provider, {})
+    if not base_url:
+        base_url = preset.get("base_url", "")
+
+    if not api_key and provider != "ollama":
         return "错误：请先在设置页面配置 API Key。"
 
     messages = [
-        {
-            "role": "user",
-            "content": build_prompt(runs, diagnostics_list, comparison_context),
-        }
+        {"role": "user", "content": build_prompt(runs, diagnostics_list, comparison_context)}
     ]
 
-    kwargs = {
-        "model": cfg["model"],
-        "messages": messages,
-        "temperature": cfg["temperature"],
-        "max_tokens": 2048,
-    }
-
-    # Ollama / 自定义 base_url
-    if base_url:
-        kwargs["api_base"] = base_url
-
-    # 根据 provider 设置 api_key 的环境变量，并自动补全模型前缀
-    provider = cfg["provider"]
-    model = cfg["model"]
-
-    # 自动补全 litellm 所需的 provider 前缀
-    PROVIDER_PREFIXES = {
-        "anthropic": "anthropic/",
-        "openai": "openai/",
-        "deepseek": "deepseek/",
-        "ollama": "ollama/",
-        "huggingface": "huggingface/",
-    }
-    prefix = PROVIDER_PREFIXES.get(provider, "")
-    if prefix and not model.startswith(prefix):
-        model = prefix + model
-    kwargs["model"] = model
-
-    if provider == "anthropic":
-        os.environ["ANTHROPIC_API_KEY"] = api_key
-    elif provider in ("openai", "deepseek"):
-        os.environ["OPENAI_API_KEY"] = api_key
-        if base_url:
-            kwargs["api_base"] = base_url
-
     try:
-        response = completion(**kwargs)
-        return response.choices[0].message.content
+        if provider == "anthropic":
+            return _call_anthropic(model, api_key, messages, cfg["temperature"])
+        else:
+            # OpenAI / DeepSeek / Ollama 都走 OpenAI 兼容接口
+            return _call_openai_compatible(model, api_key, base_url, messages, cfg["temperature"])
     except Exception as e:
         return f"LLM 调用失败: {e}\n\n请检查 API Key 和网络连接。"
+
+
+def _call_openai_compatible(model, api_key, base_url, messages, temperature):
+    """调用 OpenAI 兼容接口（OpenAI / DeepSeek / Ollama）。"""
+    from openai import OpenAI
+
+    client = OpenAI(api_key=api_key, base_url=base_url)
+    response = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=2048,
+    )
+    return response.choices[0].message.content
+
+
+def _call_anthropic(model, api_key, messages, temperature):
+    """调用 Anthropic Claude API。"""
+    from anthropic import Anthropic
+
+    client = Anthropic(api_key=api_key)
+    response = client.messages.create(
+        model=model,
+        max_tokens=2048,
+        temperature=temperature,
+        messages=messages,
+    )
+    return response.content[0].text
