@@ -84,16 +84,17 @@ def format_config_for_llm(config):
 
 def format_diagnostics_for_llm(diagnostics):
     """将诊断结果格式化为 LLM 可读文本。"""
-    lines = []
-    if diagnostics.get("issues"):
-        lines.append("### 已检测到的问题")
-        for issue in diagnostics["issues"]:
-            lines.append(f"- {issue}")
-    if diagnostics.get("suggestions"):
-        lines.append("\n### 规则引擎建议")
-        for s in diagnostics["suggestions"]:
-            lines.append(f"- {s}")
-    return "\n".join(lines)
+    return ""
+
+
+def _phase_stats(vals, n):
+    """计算某一段的均值和标准差。"""
+    import math
+    mean = sum(vals) / len(vals)
+    if len(vals) < 2:
+        return mean, 0.0
+    var = sum((x - mean) ** 2 for x in vals) / (len(vals) - 1)
+    return mean, math.sqrt(var)
 
 
 def format_run_for_llm(run):
@@ -105,11 +106,23 @@ def format_run_for_llm(run):
         if not values.get("values"):
             continue
         vals = values["values"]
+        n = len(vals)
         lines.append(f"\n### {key}")
+
+        # 基础统计
         lines.append(f"  起始值: {vals[0]:.6f}")
         lines.append(f"  最终值: {vals[-1]:.6f}")
-        lines.append(f"  峰值: {max(vals):.6f}")
-        lines.append(f"  最后100轮均值: {sum(vals[-100:])/min(len(vals),100):.6f}")
+        lines.append(f"  峰值: {max(vals):.6f}（第{vals.index(max(vals))}轮）")
+
+        # 分阶段统计：前1/4、中1/2、后1/4
+        q = max(n // 4, 1)
+        early_mean, early_std = _phase_stats(vals[:q], q)
+        mid_mean, mid_std = _phase_stats(vals[q:-q] if n > 2 * q else vals, max(len(vals[q:-q] if n > 2 * q else vals), 1))
+        late_mean, late_std = _phase_stats(vals[-q:], q)
+
+        lines.append(f"  前1/4均值: {early_mean:.6f}（标准差: {early_std:.6f}）")
+        lines.append(f"  中段均值: {mid_mean:.6f}（标准差: {mid_std:.6f}）")
+        lines.append(f"  后1/4均值: {late_mean:.6f}（标准差: {late_std:.6f}）")
 
     return "\n".join(lines)
 

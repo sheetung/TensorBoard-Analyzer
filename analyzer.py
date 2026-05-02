@@ -11,23 +11,6 @@ from dataclasses import dataclass, field
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 
-# 关键指标定义
-KEY_METRICS = {
-    "Train/mean_reward": "reward",
-    "Train/mean_episode_length": "episode_length",
-    "Loss/value_function": "value_loss",
-    "Loss/surrogate": "surrogate_loss",
-    "Loss/learning_rate": "learning_rate",
-    "Policy/mean_noise_std": "noise_std",
-    "Episode/rew_target": "rew_target",
-    "Episode/rew_smooth": "rew_smooth",
-    "Episode/rew_yaw": "rew_yaw",
-    "Episode/rew_angular": "rew_angular",
-    "Episode/rew_crash": "rew_crash",
-    "Episode/rew_cable_angle_safety": "rew_cable_angle_safety",
-}
-
-
 @dataclass
 class RunData:
     """单次训练运行的数据。"""
@@ -65,13 +48,12 @@ def load_scalars(log_dir):
     acc.Reload()
 
     scalars = {}
-    for key in KEY_METRICS:
-        if key in acc.scalars.Keys():
-            items = acc.scalars.Items(key)
-            scalars[key] = {
-                "steps": [e.step for e in items],
-                "values": [e.value for e in items],
-            }
+    for key in acc.scalars.Keys():
+        items = acc.scalars.Items(key)
+        scalars[key] = {
+            "steps": [e.step for e in items],
+            "values": [e.value for e in items],
+        }
     return scalars
 
 

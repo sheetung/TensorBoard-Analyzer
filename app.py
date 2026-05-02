@@ -4,6 +4,7 @@ TensorBoard Analyzer - 训练分析与 AI 诊断工具
 """
 
 import os
+import re
 import sys
 from dotenv import load_dotenv
 import streamlit as st
@@ -12,7 +13,7 @@ from plotly.subplots import make_subplots
 
 load_dotenv()
 
-from analyzer import scan_log_dirs, load_run, compute_diagnostics, KEY_METRICS
+from analyzer import scan_log_dirs, load_run, compute_diagnostics
 from llm_advisor import query_llm, PROVIDER_PRESETS
 
 # 页面配置
@@ -21,6 +22,12 @@ st.set_page_config(
     page_icon="📊",
     layout="wide",
 )
+
+# .env 文件路径
+ENV_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+
+# 需要持久化的 LLM 相关变量
+_LLM_ENV_KEYS = ["LLM_PROVIDER", "LLM_MODEL", "LLM_API_KEY", "LLM_BASE_URL", "USER_PROMPT"]
 
 
 def get_llm_config():
@@ -32,6 +39,30 @@ def get_llm_config():
         "base_url": os.environ.get("LLM_BASE_URL", ""),
         "user_prompt": os.environ.get("USER_PROMPT", ""),
     }
+
+
+def save_llm_config_to_env(config):
+    """将 LLM 配置写回 .env 文件，保留其他变量不变。"""
+    if not os.path.exists(ENV_FILE):
+        return
+    with open(ENV_FILE, "r") as f:
+        content = f.read()
+    mapping = {
+        "LLM_PROVIDER": config["provider"],
+        "LLM_MODEL": config["model"],
+        "LLM_API_KEY": config["api_key"],
+        "LLM_BASE_URL": config["base_url"],
+        "USER_PROMPT": config["user_prompt"],
+    }
+    for key, value in mapping.items():
+        pattern = rf'^{key}=".*"$'
+        replacement = f'{key}="{value}"'
+        if re.search(pattern, content, re.MULTILINE):
+            content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
+        else:
+            content += f"\n{replacement}"
+    with open(ENV_FILE, "w") as f:
+        f.write(content)
 
 
 # 初始化 session state
@@ -243,13 +274,17 @@ def main():
                 height=100,
             )
 
-            st.session_state.llm_config = {
-                "provider": provider,
-                "model": model,
-                "api_key": api_key,
-                "base_url": base_url,
-                "user_prompt": user_prompt,
-            }
+            if st.button("保存 LLM 配置"):
+                new_config = {
+                    "provider": provider,
+                    "model": model,
+                    "api_key": api_key,
+                    "base_url": base_url,
+                    "user_prompt": user_prompt,
+                }
+                st.session_state.llm_config = new_config
+                save_llm_config_to_env(new_config)
+                st.toast("已保存", icon="✅")
 
     # ========== 主区域 ==========
     if not st.session_state.runs:
@@ -266,13 +301,11 @@ def main():
 
     # Tab 1: 对比曲线
     with tab_chart:
-        # 选择要显示的指标
-        available_metrics = []
-        for key in KEY_METRICS:
-            for run in runs:
-                if key in run.scalars:
-                    available_metrics.append(key)
-                    break
+        # 选择要显示的指标（取所有 run 的并集）
+        all_metric_keys = set()
+        for run in runs:
+            all_metric_keys.update(run.scalars.keys())
+        available_metrics = sorted(all_metric_keys)
 
         if not available_metrics:
             st.warning("无训练指标数据")
