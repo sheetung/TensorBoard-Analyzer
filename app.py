@@ -42,7 +42,7 @@ def get_llm_config():
 
 
 def save_llm_config_to_env(config):
-    """将 LLM 配置写回 .env 文件，保留其他变量不变。"""
+    """将 LLM 配置写回 .env 文件并更新当前进程环境变量。"""
     if not os.path.exists(ENV_FILE):
         return
     with open(ENV_FILE, "r") as f:
@@ -61,6 +61,7 @@ def save_llm_config_to_env(config):
             content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
         else:
             content += f"\n{replacement}"
+        os.environ[key] = value
     with open(ENV_FILE, "w") as f:
         f.write(content)
 
@@ -268,7 +269,7 @@ def main():
 
             user_prompt = st.text_area(
                 "用户自定义提示（可选）",
-                value=st.session_state.llm_config.get("user_prompt", ""),
+                value=os.environ.get("USER_PROMPT", ""),
                 placeholder="描述你的项目背景、训练目标、特殊约束等，帮助 AI 给出更精准的建议",
                 key="llm_user_prompt",
                 height=100,
@@ -369,20 +370,20 @@ def main():
                         diagnostics_list=st.session_state.diagnostics,
                         config=st.session_state.llm_config,
                         comparison_context=comparison,
-                        user_prompt=st.session_state.llm_config.get("user_prompt", ""),
+                        user_prompt=os.environ.get("USER_PROMPT", ""),
                     )
 
                 st.markdown(result)
 
                 with st.expander("📋 查看发送给 LLM 的上下文", expanded=False):
                     from llm_advisor import build_prompt
-                    prompt = build_prompt(
+                    system_content, user_content = build_prompt(
                         runs,
                         st.session_state.diagnostics,
                         comparison,
-                        st.session_state.llm_config.get("user_prompt", ""),
+                        os.environ.get("USER_PROMPT", ""),
                     )
-                    st.code(prompt, language="text")
+                    st.code(f"[system]\n{system_content}\n\n[user]\n{user_content}", language="text")
 
 
 if __name__ == "__main__":

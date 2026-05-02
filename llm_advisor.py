@@ -128,13 +128,12 @@ def format_run_for_llm(run):
 
 
 def build_prompt(runs, diagnostics_list, comparison_context="", user_prompt=""):
-    """构建完整的 LLM prompt。"""
-    parts = [SYSTEM_PROMPT]
+    """构建 LLM prompt，返回 (system_content, user_content)。"""
+    system_content = SYSTEM_PROMPT
+    parts = []
 
     if user_prompt.strip():
-        parts.append(f"\n## 用户补充说明\n{user_prompt.strip()}")
-
-    parts.append("\n---\n")
+        parts.append(f"## 用户补充说明\n{user_prompt.strip()}")
 
     if comparison_context:
         parts.append(comparison_context)
@@ -148,7 +147,7 @@ def build_prompt(runs, diagnostics_list, comparison_context="", user_prompt=""):
     if len(runs) > 1:
         parts.append("请对比以上多次训练，分析差异原因，并给出综合调参建议。")
 
-    return "\n".join(parts)
+    return system_content, "\n".join(parts)
 
 
 def query_llm(runs, diagnostics_list, config=None, comparison_context="", user_prompt=""):
@@ -179,8 +178,10 @@ def query_llm(runs, diagnostics_list, config=None, comparison_context="", user_p
     if not api_key and provider != "ollama":
         return "错误：请先在设置页面配置 API Key。"
 
+    system_content, user_content = build_prompt(runs, diagnostics_list, comparison_context, user_prompt)
     messages = [
-        {"role": "user", "content": build_prompt(runs, diagnostics_list, comparison_context, user_prompt)}
+        {"role": "system", "content": system_content},
+        {"role": "user", "content": user_content},
     ]
 
     try:
@@ -202,7 +203,7 @@ def _call_openai_compatible(model, api_key, base_url, messages, temperature):
         model=model,
         messages=messages,
         temperature=temperature,
-        max_tokens=2048,
+        max_tokens=16384,
     )
     return response.choices[0].message.content
 
@@ -214,7 +215,7 @@ def _call_anthropic(model, api_key, messages, temperature):
     client = Anthropic(api_key=api_key)
     response = client.messages.create(
         model=model,
-        max_tokens=2048,
+        max_tokens=16384,
         temperature=temperature,
         messages=messages,
     )
