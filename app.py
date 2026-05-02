@@ -5,7 +5,6 @@ TensorBoard Analyzer - 训练分析与 AI 诊断工具
 
 import os
 import sys
-import json
 from dotenv import load_dotenv
 import streamlit as st
 import plotly.graph_objects as go
@@ -23,40 +22,21 @@ st.set_page_config(
     layout="wide",
 )
 
-# 配置文件路径
-CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "llm_config.json")
 
-DEFAULT_LLM_CONFIG = {
-    "provider": "deepseek",
-    "model": "deepseek-chat",
-    "api_key": "",
-    "base_url": "",
-    "user_prompt": os.environ.get("USER_PROMPT", ""),
-}
-
-
-def load_llm_config():
-    """从 JSON 文件加载 LLM 配置。"""
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, "r") as f:
-                saved = json.load(f)
-            # 合并默认值，防止缺字段
-            return {**DEFAULT_LLM_CONFIG, **saved}
-        except Exception:
-            pass
-    return DEFAULT_LLM_CONFIG.copy()
-
-
-def save_llm_config(config):
-    """保存 LLM 配置到 JSON 文件。"""
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
+def get_llm_config():
+    """从环境变量读取 LLM 配置。"""
+    return {
+        "provider": os.environ.get("LLM_PROVIDER", "deepseek"),
+        "model": os.environ.get("LLM_MODEL", "deepseek-chat"),
+        "api_key": os.environ.get("LLM_API_KEY", ""),
+        "base_url": os.environ.get("LLM_BASE_URL", ""),
+        "user_prompt": os.environ.get("USER_PROMPT", ""),
+    }
 
 
 # 初始化 session state
 if "llm_config" not in st.session_state:
-    st.session_state.llm_config = load_llm_config()
+    st.session_state.llm_config = get_llm_config()
 if "runs" not in st.session_state:
     st.session_state.runs = []
 if "diagnostics" not in st.session_state:
@@ -263,17 +243,13 @@ def main():
                 height=100,
             )
 
-            if st.button("保存 LLM 配置"):
-                config = {
-                    "provider": provider,
-                    "model": model,
-                    "api_key": api_key,
-                    "base_url": base_url,
-                    "user_prompt": user_prompt,
-                }
-                st.session_state.llm_config = config
-                save_llm_config(config)
-                st.success("已保存（下次打开自动加载）")
+            st.session_state.llm_config = {
+                "provider": provider,
+                "model": model,
+                "api_key": api_key,
+                "base_url": base_url,
+                "user_prompt": user_prompt,
+            }
 
     # ========== 主区域 ==========
     if not st.session_state.runs:

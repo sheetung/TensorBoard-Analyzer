@@ -153,10 +153,10 @@ def query_llm(runs, diagnostics_list, config=None, comparison_context="", user_p
         LLM 生成的建议文本
     """
     cfg = {**DEFAULT_CONFIG, **(config or {})}
-    provider = cfg["provider"]
-    model = cfg["model"]
+    provider = cfg["provider"] or os.environ.get("LLM_PROVIDER", "deepseek")
+    model = cfg["model"] or os.environ.get("LLM_MODEL", "deepseek-chat")
     api_key = cfg["api_key"] or os.environ.get("LLM_API_KEY", "")
-    base_url = cfg["base_url"]
+    base_url = cfg["base_url"] or os.environ.get("LLM_BASE_URL", "")
 
     # 从 provider 预设中取默认 base_url（用户未自定义时）
     preset = PROVIDER_PRESETS.get(provider, {})
