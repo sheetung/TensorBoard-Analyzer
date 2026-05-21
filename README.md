@@ -26,7 +26,7 @@
 ## 安装
 
 ```bash
-git clone git@github.com:sheetung/TensorBoard-Analyzer.git
+git clone https://github.com/sheetung/TensorBoard-Analyzer
 cd TensorBoard-Analyzer
 
 python -m venv .venv
