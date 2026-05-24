@@ -18,31 +18,6 @@ st.set_page_config(
     layout="wide",
 )
 
-# 聊天输入框固定在底部
-st.markdown("""
-<style>
-[data-testid="stChatInput"] {
-    position: fixed !important;
-    bottom: 0 !important;
-    right: 40px !important;
-    z-index: 999 !important;
-}
-</style>
-<script>
-function adjustChatInput() {
-    const sidebar = document.querySelector('[data-testid="stSidebar"]');
-    const chatInput = document.querySelector('[data-testid="stChatInput"]');
-    if (!sidebar || !chatInput) return;
-    chatInput.style.left = sidebar.offsetWidth > 50 ? '340px' : '40px';
-}
-document.addEventListener('DOMContentLoaded', function() {
-    adjustChatInput();
-    const main = document.querySelector('[data-testid="stApp"]') || document.body;
-    new MutationObserver(adjustChatInput).observe(main, {childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class']});
-});
-</script>
-""", unsafe_allow_html=True)
-
 # 初始化 session state
 if "llm_config" not in st.session_state:
     st.session_state.llm_config = get_llm_config()
