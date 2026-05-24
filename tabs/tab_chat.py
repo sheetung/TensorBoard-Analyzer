@@ -32,6 +32,14 @@ def inject_fixed_chat_input_css():
             max-width: none !important;
             width: 100% !important;
         }
+
+        /* 发送按钮在输入框右边 */
+        [data-testid="stChatInputSubmitButton"] {
+            position: absolute !important;
+            right: 8px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
