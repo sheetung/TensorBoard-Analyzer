@@ -23,6 +23,10 @@
 
 ![AI 分析](assets/3.png)
 
+### AI 对话
+
+![AI 对话](assets/5.png)
+
 ## 安装
 
 ```bash
@@ -66,6 +70,7 @@ streamlit run app.py
 3. 点击「加载数据」
 4. 在 Tab 页中查看对比曲线、配置参数、自动诊断结果
 5. 配置 LLM API Key 后，点击「AI 分析」获取大模型调参建议
+6. 切换到「AI 对话」Tab，基于训练数据进行多轮问答
 
 ### LLM 配置
 
@@ -78,17 +83,27 @@ streamlit run app.py
 | anthropic | claude-sonnet-4-20250514 | Anthropic Claude |
 | ollama | llama3 | 本地部署 |
 
-在左侧栏「AI 诊断设置」中填写 API Key 即可，首次保存后自动持久化到 `llm_config.json`（已加入 .gitignore）。
+在左侧栏「AI 诊断设置」中填写 API Key 即可，配置自动持久化到 `.env` 文件。
 
 ## 项目结构
 
 ```
 TensorBoard-Analyzer/
-├── app.py            # Streamlit 主入口（4 个 Tab）
-├── analyzer.py       # TensorBoard 数据读取 + 规则诊断
-├── llm_advisor.py    # 多模型 LLM 调用（OpenAI / Anthropic SDK）
-├── requirements.txt  # Python 依赖
-├── .env.example      # 环境变量模板
+├── app.py              # Streamlit 主入口
+├── sidebar.py          # 配置管理（日志扫描、LLM 配置持久化）
+├── components.py       # 共享渲染组件（图表、配置表、诊断展示）
+├── core/               # 核心模块
+│   ├── analyzer.py     # TensorBoard 数据读取 + 规则诊断
+│   ├── llm_advisor.py  # 多模型 LLM 调用（OpenAI / Anthropic SDK）
+│   └── ai_chat.py      # 多轮对话逻辑
+├── tabs/               # Tab 页面
+│   ├── tab_chart.py    # 对比曲线
+│   ├── tab_config.py   # 配置参数
+│   ├── tab_diag.py     # 自动诊断
+│   ├── tab_ai.py       # AI 分析
+│   └── tab_chat.py     # AI 对话
+├── requirements.txt    # Python 依赖
+├── .env.example        # 环境变量模板
 ├── .gitignore
 └── README.md
 ```
