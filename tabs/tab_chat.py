@@ -40,6 +40,17 @@ def inject_fixed_chat_input_css():
             top: 50% !important;
             transform: translateY(-50%) !important;
         }
+
+        /* 隐藏消息头像 */
+        [data-testid="stChatMessage"] [data-testid="chatAvatarIcon"] {
+            display: none !important;
+        }
+
+        /* 用户消息在右边 */
+        [data-testid="stChatMessage"][data-testid-type="user"] {
+            display: flex !important;
+            flex-direction: row-reverse !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
