@@ -1,8 +1,11 @@
 """AI 对话页面。"""
 
 import os
+from html import escape
+
 import streamlit as st
 import streamlit.components.v1 as components
+
 from core.ai_chat import init_chat_messages, chat_llm
 
 
@@ -43,6 +46,26 @@ def inject_fixed_chat_input_css():
         [data-testid="stChatInput"] textarea {
             border-radius: 1.5rem !important;
         }
+
+        .user-message-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 0.85rem;
+        }
+
+        .user-message-box {
+            max-width: 58%;
+            border: 1px solid rgba(128, 128, 128, 0.25);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            text-align: right;
+            word-break: break-word;
+            line-height: 1.6;
+        }
+
+        .assistant-message-block {
+            margin-bottom: 0.85rem;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -76,9 +99,9 @@ def inject_fixed_chat_input_css():
 
             const rect = blockContainer.getBoundingClientRect();
 
-            const maxWidth = 780;
+            const maxWidth = 600;
             const sidePadding = 24;
-            const minWidth = 320;
+            const minWidth = 280;
 
             const targetWidth = Math.min(
                 maxWidth,
@@ -176,6 +199,36 @@ def inject_fixed_chat_input_css():
     )
 
 
+def render_message(role, content):
+    """
+    渲染对话消息。
+
+    约定：
+    - AI 回复：正常显示，不分左右，不显示头像
+    - 用户输入：显示在右边，内容右对齐，不显示头像
+    - 不显示“用户”和“AI”文字
+    """
+
+    if role == "assistant":
+        st.markdown('<div class="assistant-message-block">', unsafe_allow_html=True)
+        st.markdown(content)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    elif role == "user":
+        safe_content = escape(content).replace("\n", "<br>")
+
+        st.markdown(
+            f"""
+            <div class="user-message-row">
+                <div class="user-message-box">
+                    {safe_content}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
 def render(runs, diagnostics, llm_config):
     """渲染 AI 对话 tab。"""
 
@@ -216,8 +269,7 @@ def render(runs, diagnostics, llm_config):
         if idx < 2:
             continue
 
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+        render_message(msg["role"], msg["content"])
 
     # 聊天输入
     user_input = st.chat_input(
@@ -244,19 +296,19 @@ def render(runs, diagnostics, llm_config):
             }
         )
 
-        with st.chat_message("user"):
-            st.markdown(user_input)
+        # 用户输入显示在右侧
+        render_message("user", user_input)
 
         # 调用 LLM
-        with st.chat_message("assistant"):
-            with st.spinner("思考中..."):
-                response = chat_llm(
-                    system_prompt=st.session_state.chat_system_prompt,
-                    messages=st.session_state.chat_messages,
-                    config=llm_config,
-                )
+        with st.spinner("思考中..."):
+            response = chat_llm(
+                system_prompt=st.session_state.chat_system_prompt,
+                messages=st.session_state.chat_messages,
+                config=llm_config,
+            )
 
-            st.markdown(response)
+        # AI 回复正常显示，不分左右
+        render_message("assistant", response)
 
         # 保存助手回复
         st.session_state.chat_messages.append(
