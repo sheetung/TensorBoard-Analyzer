@@ -7,6 +7,19 @@ from core.ai_chat import init_chat_messages, chat_llm
 
 def render(runs, diagnostics, llm_config):
     """渲染 AI 对话 tab。"""
+    # 聊天输入框固定在底部，自适应侧边栏
+    st.markdown("""
+    <style>
+    [data-testid="stChatInput"] {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(90%, calc(100vw - 100px));
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.subheader("💬 AI 对话")
 
     provider = llm_config.get("provider", "")
