@@ -25,7 +25,7 @@ def inject_fixed_chat_input_css():
             z-index: 9999 !important;
             transform: none !important;
             background: var(--background-color) !important;
-            padding: 0.5rem 0 0.75rem 0 !important;
+            padding: 0.5rem 48px 0.75rem 0 !important;
         }
 
         [data-testid="stChatInput"] > div {
