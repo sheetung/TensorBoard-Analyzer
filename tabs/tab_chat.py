@@ -8,53 +8,171 @@ import streamlit.components.v1 as components
 
 from core.ai_chat import init_chat_messages, chat_llm
 
-
 def inject_fixed_chat_input_css():
     """
-    固定聊天输入框到底部。
+    固定聊天输入框到底部，并尽量做成 ChatGPT 风格。
 
-    效果：
-    1. 类似 ChatGPT，不占满整个页面
-    2. 固定在浏览器底部
-    3. 侧边栏展开/收起时，输入框跟随主内容区域移动
-    4. 使用 requestAnimationFrame，减少动画卡顿
+    特点：
+    1. 白色胶囊输入框
+    2. 没有左侧 + 号
+    3. 没有内部灰背景
+    4. 发送按钮在输入框最右边
+    5. 侧边栏展开/收起时跟随主内容区移动
     """
 
     st.markdown(
         """
         <style>
         .block-container {
-            padding-bottom: 8rem !important;
+            padding-bottom: 7rem !important;
         }
 
+        /*
+         * 最外层：唯一输入框外壳
+         */
         [data-testid="stChatInput"] {
             position: fixed !important;
-            bottom: 1.25rem !important;
+            bottom: 1.15rem !important;
             right: auto !important;
             z-index: 9999 !important;
             transform: none !important;
+
+            height: 60px !important;
+            min-height: 60px !important;
+            max-height: 60px !important;
+
             background: transparent !important;
-            padding: 0 !important;
+            border: none !important;
+            border-radius: 999px !important;
+            box-shadow: 0 3px 14px rgba(0, 0, 0, 0.08) !important;
+
+            padding: 0 56px 0 18px !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+
+            display: flex !important;
+            align-items: center !important;
+
             will-change: left, width !important;
         }
 
-        [data-testid="stChatInput"] > div {
+        /*
+         * 内部所有容器透明，不要出现第二层灰背景
+         */
+        [data-testid="stChatInput"] > div,
+        [data-testid="stChatInput"] form,
+        [data-testid="stChatInput"] form > div {
             width: 100% !important;
-            max-width: none !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: none !important;
+
+            padding: 0 !important;
+            margin: 0 !important;
+
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+
+            display: flex !important;
+            align-items: center !important;
+            box-sizing: border-box !important;
         }
 
+        /*
+         * 文字输入区域：透明、无背景、无边框
+         */
         [data-testid="stChatInput"] textarea {
-            border-radius: 1.5rem !important;
-            height: 1.2em !important;
-            max-height: 1.2em !important;
-            min-height: 1.2em !important;
-            line-height: 1.2em !important;
-            padding-top: 0.55rem !important;
-            padding-bottom: 0.55rem !important;
+            width: 100% !important;
+            height: 28px !important;
+            min-height: 28px !important;
+            max-height: 28px !important;
+
+            line-height: 28px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+
             resize: none !important;
-            overflow: hidden !important;
+            overflow-y: hidden !important;
+            box-sizing: border-box !important;
+            font-size: 1rem !important;
         }
 
+        [data-testid="stChatInput"] textarea:focus,
+        [data-testid="stChatInput"] textarea:focus-visible {
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        /*
+         * 发送按钮：贴在最右边
+         */
+        [data-testid="stChatInput"] button {
+            position: absolute !important;
+            right: 8px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+
+            width: 38px !important;
+            height: 38px !important;
+            min-width: 38px !important;
+            min-height: 38px !important;
+            max-width: 38px !important;
+            max-height: 38px !important;
+
+            padding: 0 !important;
+            margin: 0 !important;
+            border-radius: 999px !important;
+
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+
+            box-sizing: border-box !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        /*
+         * 有内容时按钮
+         */
+        [data-testid="stChatInput"] button:not(:disabled) {
+            background: #111111 !important;
+            color: #ffffff !important;
+        }
+
+        [data-testid="stChatInput"] button:not(:disabled) svg {
+            color: #ffffff !important;
+            fill: #ffffff !important;
+            stroke: #ffffff !important;
+        }
+
+        /*
+         * 无内容时按钮
+         */
+        [data-testid="stChatInput"] button:disabled {
+            background: #f1f3f5 !important;
+            color: #9aa0aa !important;
+            opacity: 1 !important;
+        }
+
+        [data-testid="stChatInput"] button:disabled svg {
+            color: #9aa0aa !important;
+            fill: #9aa0aa !important;
+            stroke: #9aa0aa !important;
+        }
+
+        /*
+         * 用户消息：右侧气泡，内容右对齐
+         */
         .user-message-row {
             display: flex;
             justify-content: flex-end;
@@ -71,6 +189,9 @@ def inject_fixed_chat_input_css():
             line-height: 1.6;
         }
 
+        /*
+         * AI 回复正常显示
+         */
         .assistant-message-block {
             margin-bottom: 0.85rem;
         }
@@ -107,9 +228,9 @@ def inject_fixed_chat_input_css():
 
             const rect = blockContainer.getBoundingClientRect();
 
-            const maxWidth = 600;
+            const maxWidth = 920;
             const sidePadding = 24;
-            const minWidth = 280;
+            const minWidth = 360;
 
             const targetWidth = Math.min(
                 maxWidth,
@@ -118,10 +239,6 @@ def inject_fixed_chat_input_css():
 
             const targetLeft = rect.left + (rect.width - targetWidth) / 2;
 
-            /*
-             * 避免每一帧都重复写 style。
-             * 只有位置/宽度真的变化时才更新，减少卡顿。
-             */
             if (
                 lastLeft !== null &&
                 Math.abs(lastLeft - targetLeft) < 0.5 &&
@@ -137,7 +254,7 @@ def inject_fixed_chat_input_css():
             chatInput.style.setProperty("width", targetWidth + "px", "important");
             chatInput.style.setProperty("right", "auto", "important");
             chatInput.style.setProperty("transform", "none", "important");
-            chatInput.style.setProperty("bottom", "1.25rem", "important");
+            chatInput.style.setProperty("bottom", "1.15rem", "important");
         }
 
         function smoothTrack(duration = 450) {
@@ -161,23 +278,12 @@ def inject_fixed_chat_input_css():
             rafId = window.parent.requestAnimationFrame(frame);
         }
 
-        /*
-         * 首次加载
-         */
         smoothTrack(800);
 
-        /*
-         * 浏览器尺寸变化
-         */
         window.parent.addEventListener("resize", () => {
             smoothTrack(500);
         });
 
-        /*
-         * 监听 Streamlit DOM 变化。
-         * 侧边栏展开/收起会触发 DOM/class/style 变化。
-         * 不直接频繁更新，而是启动一小段 rAF 跟踪。
-         */
         const observer = new MutationObserver(() => {
             smoothTrack(500);
         });
@@ -188,9 +294,6 @@ def inject_fixed_chat_input_css():
             subtree: true,
         });
 
-        /*
-         * 监听主内容区尺寸变化。
-         */
         const blockContainer = getBlockContainer();
 
         if (blockContainer && "ResizeObserver" in window.parent) {
@@ -211,7 +314,6 @@ def render_message(role, content):
     """
     渲染对话消息。
 
-    约定：
     - AI 回复：正常显示，不分左右，不显示头像
     - 用户输入：显示在右边，内容右对齐，不显示头像
     - 不显示“用户”和“AI”文字
