@@ -41,10 +41,10 @@ def inject_fixed_chat_input_css():
             min-height: 60px !important;
             max-height: 60px !important;
 
-            background: transparent !important;
-            border: none !important;
+            background: #ffffff !important;
+            border: 1px solid rgba(0, 0, 0, 0.08) !important;
             border-radius: 999px !important;
-            box-shadow: 0 3px 14px rgba(0, 0, 0, 0.08) !important;
+            box-shadow: none !important;
 
             padding: 0 56px 0 18px !important;
             margin: 0 !important;
