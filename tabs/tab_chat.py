@@ -56,8 +56,19 @@ def inject_fixed_chat_input_css():
 
             const rect = blockContainer.getBoundingClientRect();
 
-            chatInput.style.setProperty("left", rect.left + "px", "important");
-            chatInput.style.setProperty("width", rect.width + "px", "important");
+            const maxWidth = 780;
+            const sidePadding = 24;
+            const minWidth = 320;
+
+            const targetWidth = Math.min(
+                maxWidth,
+                Math.max(minWidth, rect.width - sidePadding * 2)
+            );
+
+            const targetLeft = rect.left + (rect.width - targetWidth) / 2;
+
+            chatInput.style.setProperty("left", targetLeft + "px", "important");
+            chatInput.style.setProperty("width", targetWidth + "px", "important");
             chatInput.style.setProperty("right", "auto", "important");
             chatInput.style.setProperty("transform", "none", "important");
             chatInput.style.setProperty("bottom", "0.75rem", "important");
