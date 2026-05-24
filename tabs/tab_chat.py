@@ -7,30 +7,41 @@ from core.ai_chat import init_chat_messages, chat_llm
 
 
 def inject_fixed_chat_input_css():
-    """固定聊天输入框到底部，并根据主内容区位置自适应侧边栏。"""
+    """
+    固定聊天输入框到底部。
+
+    效果：
+    1. 类似 ChatGPT，不占满整个页面
+    2. 固定在浏览器底部
+    3. 侧边栏展开/收起时，输入框跟随主内容区域移动
+    4. 使用 requestAnimationFrame，减少动画卡顿
+    """
 
     st.markdown(
         """
         <style>
-        /* 给底部留白，防止最后一条消息被输入框遮住 */
         .block-container {
-            padding-bottom: 7rem !important;
+            padding-bottom: 8rem !important;
         }
 
-        /* 固定输入框，但 left/width 由 JS 动态设置 */
         [data-testid="stChatInput"] {
             position: fixed !important;
-            bottom: 0.75rem !important;
+            bottom: 1.25rem !important;
             right: auto !important;
             z-index: 9999 !important;
             transform: none !important;
-            background: var(--background-color) !important;
-            padding: 0.5rem 0 0.75rem 0 !important;
+            background: transparent !important;
+            padding: 0 !important;
+            will-change: left, width !important;
         }
 
         [data-testid="stChatInput"] > div {
-            max-width: none !important;
             width: 100% !important;
+            max-width: none !important;
+        }
+
+        [data-testid="stChatInput"] textarea {
+            border-radius: 1.5rem !important;
         }
         </style>
         """,
@@ -40,46 +51,124 @@ def inject_fixed_chat_input_css():
     components.html(
         """
         <script>
-        function updateChatInputPosition() {
-            const doc = window.parent.document;
+        const doc = window.parent.document;
 
-            const chatInput = doc.querySelector('[data-testid="stChatInput"]');
-            if (!chatInput) return;
+        let rafId = null;
+        let lastLeft = null;
+        let lastWidth = null;
 
-            const blockContainer =
+        function getBlockContainer() {
+            return (
                 doc.querySelector('[data-testid="stAppViewContainer"] .block-container') ||
                 doc.querySelector('section.main .block-container') ||
                 doc.querySelector('main .block-container') ||
-                doc.querySelector('.block-container');
+                doc.querySelector('.block-container')
+            );
+        }
 
-            if (!blockContainer) return;
+        function updateChatInputPosition() {
+            const chatInput = doc.querySelector('[data-testid="stChatInput"]');
+            const blockContainer = getBlockContainer();
+
+            if (!chatInput || !blockContainer) {
+                return;
+            }
 
             const rect = blockContainer.getBoundingClientRect();
 
-            chatInput.style.setProperty("left", rect.left + "px", "important");
-            chatInput.style.setProperty("width", rect.width + "px", "important");
+            const maxWidth = 780;
+            const sidePadding = 24;
+            const minWidth = 320;
+
+            const targetWidth = Math.min(
+                maxWidth,
+                Math.max(minWidth, rect.width - sidePadding * 2)
+            );
+
+            const targetLeft = rect.left + (rect.width - targetWidth) / 2;
+
+            /*
+             * 避免每一帧都重复写 style。
+             * 只有位置/宽度真的变化时才更新，减少卡顿。
+             */
+            if (
+                lastLeft !== null &&
+                Math.abs(lastLeft - targetLeft) < 0.5 &&
+                Math.abs(lastWidth - targetWidth) < 0.5
+            ) {
+                return;
+            }
+
+            lastLeft = targetLeft;
+            lastWidth = targetWidth;
+
+            chatInput.style.setProperty("left", targetLeft + "px", "important");
+            chatInput.style.setProperty("width", targetWidth + "px", "important");
             chatInput.style.setProperty("right", "auto", "important");
             chatInput.style.setProperty("transform", "none", "important");
-            chatInput.style.setProperty("bottom", "0.75rem", "important");
+            chatInput.style.setProperty("bottom", "1.25rem", "important");
         }
 
-        updateChatInputPosition();
+        function smoothTrack(duration = 450) {
+            const start = performance.now();
 
-        window.parent.addEventListener("resize", updateChatInputPosition);
+            function frame(now) {
+                updateChatInputPosition();
 
-        const observer = new MutationObserver(updateChatInputPosition);
-        observer.observe(window.parent.document.body, {
+                if (now - start < duration) {
+                    rafId = window.parent.requestAnimationFrame(frame);
+                } else {
+                    updateChatInputPosition();
+                    rafId = null;
+                }
+            }
+
+            if (rafId) {
+                window.parent.cancelAnimationFrame(rafId);
+            }
+
+            rafId = window.parent.requestAnimationFrame(frame);
+        }
+
+        /*
+         * 首次加载
+         */
+        smoothTrack(800);
+
+        /*
+         * 浏览器尺寸变化
+         */
+        window.parent.addEventListener("resize", () => {
+            smoothTrack(500);
+        });
+
+        /*
+         * 监听 Streamlit DOM 变化。
+         * 侧边栏展开/收起会触发 DOM/class/style 变化。
+         * 不直接频繁更新，而是启动一小段 rAF 跟踪。
+         */
+        const observer = new MutationObserver(() => {
+            smoothTrack(500);
+        });
+
+        observer.observe(doc.body, {
             attributes: true,
             childList: true,
             subtree: true,
         });
 
-        const timer = setInterval(updateChatInputPosition, 200);
+        /*
+         * 监听主内容区尺寸变化。
+         */
+        const blockContainer = getBlockContainer();
 
-        setTimeout(() => {
-            clearInterval(timer);
-            updateChatInputPosition();
-        }, 6000);
+        if (blockContainer && "ResizeObserver" in window.parent) {
+            const resizeObserver = new window.parent.ResizeObserver(() => {
+                smoothTrack(300);
+            });
+
+            resizeObserver.observe(blockContainer);
+        }
         </script>
         """,
         height=0,
@@ -105,7 +194,10 @@ def render(runs, diagnostics, llm_config):
     current_context_id = "|".join(r.name for r in runs)
 
     # 检测训练数据是否更新，自动重置对话
-    if st.session_state.chat_context_id and st.session_state.chat_context_id != current_context_id:
+    if (
+        st.session_state.chat_context_id
+        and st.session_state.chat_context_id != current_context_id
+    ):
         st.session_state.chat_messages = []
         st.session_state.chat_system_prompt = ""
         st.session_state.chat_context_id = ""
@@ -119,12 +211,20 @@ def render(runs, diagnostics, llm_config):
         st.rerun()
 
     # 渲染历史消息
-    for msg in st.session_state.chat_messages:
+    # 前两条是初始化上下文消息，不展示给用户
+    for idx, msg in enumerate(st.session_state.chat_messages):
+        if idx < 2:
+            continue
+
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
     # 聊天输入
-    if user_input := st.chat_input("输入你的问题，例如：为什么 reward 在第 500 轮后下降？"):
+    user_input = st.chat_input(
+        "输入你的问题，例如：为什么 reward 在第 500 轮后下降？"
+    )
+
+    if user_input:
         # 首次对话时初始化 system prompt
         if not st.session_state.chat_context_id:
             system_prompt, messages = init_chat_messages(
@@ -137,7 +237,12 @@ def render(runs, diagnostics, llm_config):
             st.session_state.chat_context_id = current_context_id
 
         # 添加用户消息
-        st.session_state.chat_messages.append({"role": "user", "content": user_input})
+        st.session_state.chat_messages.append(
+            {
+                "role": "user",
+                "content": user_input,
+            }
+        )
 
         with st.chat_message("user"):
             st.markdown(user_input)
@@ -150,7 +255,13 @@ def render(runs, diagnostics, llm_config):
                     messages=st.session_state.chat_messages,
                     config=llm_config,
                 )
+
             st.markdown(response)
 
         # 保存助手回复
-        st.session_state.chat_messages.append({"role": "assistant", "content": response})
+        st.session_state.chat_messages.append(
+            {
+                "role": "assistant",
+                "content": response,
+            }
+        )
