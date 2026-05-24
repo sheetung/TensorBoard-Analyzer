@@ -45,10 +45,14 @@ def inject_fixed_chat_input_css():
 
         [data-testid="stChatInput"] textarea {
             border-radius: 1.5rem !important;
-            max-height: 48px !important;
-            height: 48px !important;
+            height: 1.2em !important;
+            max-height: 1.2em !important;
+            min-height: 1.2em !important;
+            line-height: 1.2em !important;
+            padding-top: 0.55rem !important;
+            padding-bottom: 0.55rem !important;
             resize: none !important;
-            overflow-y: auto !important;
+            overflow: hidden !important;
         }
 
         .user-message-row {
