@@ -42,7 +42,7 @@ def inject_fixed_chat_input_css():
         }
 
         /* 隐藏消息头像 */
-        [data-testid="stChatMessage"] [data-testid="chatAvatarIcon"] {
+        [data-testid="stChatMessage"] > div:first-child {
             display: none !important;
         }
 
@@ -50,6 +50,11 @@ def inject_fixed_chat_input_css():
         [data-testid="stChatMessage"][data-testid-type="user"] {
             display: flex !important;
             flex-direction: row-reverse !important;
+        }
+
+        /* 备用：通过 class 隐藏头像 */
+        .stChatMessage .stChatMessageAvatar {
+            display: none !important;
         }
         </style>
         """,
