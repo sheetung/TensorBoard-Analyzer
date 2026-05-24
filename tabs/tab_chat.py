@@ -2,28 +2,101 @@
 
 import os
 import streamlit as st
+import streamlit.components.v1 as components
 from core.ai_chat import init_chat_messages, chat_llm
+
+
+def inject_fixed_chat_input_css():
+    """固定聊天输入框到底部，并根据主内容区位置自适应侧边栏。"""
+
+    st.markdown(
+        """
+        <style>
+        /* 给底部留白，防止最后一条消息被输入框遮住 */
+        .block-container {
+            padding-bottom: 7rem !important;
+        }
+
+        /* 固定输入框，但 left/width 由 JS 动态设置 */
+        [data-testid="stChatInput"] {
+            position: fixed !important;
+            bottom: 0.75rem !important;
+            right: auto !important;
+            z-index: 9999 !important;
+            transform: none !important;
+            background: var(--background-color) !important;
+            padding: 0.5rem 0 0.75rem 0 !important;
+        }
+
+        [data-testid="stChatInput"] > div {
+            max-width: none !important;
+            width: 100% !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    components.html(
+        """
+        <script>
+        function updateChatInputPosition() {
+            const doc = window.parent.document;
+
+            const chatInput = doc.querySelector('[data-testid="stChatInput"]');
+            if (!chatInput) return;
+
+            const blockContainer =
+                doc.querySelector('[data-testid="stAppViewContainer"] .block-container') ||
+                doc.querySelector('section.main .block-container') ||
+                doc.querySelector('main .block-container') ||
+                doc.querySelector('.block-container');
+
+            if (!blockContainer) return;
+
+            const rect = blockContainer.getBoundingClientRect();
+
+            chatInput.style.setProperty("left", rect.left + "px", "important");
+            chatInput.style.setProperty("width", rect.width + "px", "important");
+            chatInput.style.setProperty("right", "auto", "important");
+            chatInput.style.setProperty("transform", "none", "important");
+            chatInput.style.setProperty("bottom", "0.75rem", "important");
+        }
+
+        updateChatInputPosition();
+
+        window.parent.addEventListener("resize", updateChatInputPosition);
+
+        const observer = new MutationObserver(updateChatInputPosition);
+        observer.observe(window.parent.document.body, {
+            attributes: true,
+            childList: true,
+            subtree: true,
+        });
+
+        const timer = setInterval(updateChatInputPosition, 200);
+
+        setTimeout(() => {
+            clearInterval(timer);
+            updateChatInputPosition();
+        }, 6000);
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
 
 
 def render(runs, diagnostics, llm_config):
     """渲染 AI 对话 tab。"""
-    # 聊天输入框固定在底部，自适应侧边栏
-    st.markdown("""
-    <style>
-    [data-testid="stChatInput"] {
-        position: fixed;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: min(90%, calc(100vw - 100px));
-    }
-    </style>
-    """, unsafe_allow_html=True)
+
+    inject_fixed_chat_input_css()
 
     st.subheader("💬 AI 对话")
 
     provider = llm_config.get("provider", "")
     api_key = llm_config.get("api_key", "")
+
     if provider != "ollama" and not api_key:
         st.warning("请先在左侧「AI 诊断设置」中配置 API Key")
         return
@@ -65,6 +138,7 @@ def render(runs, diagnostics, llm_config):
 
         # 添加用户消息
         st.session_state.chat_messages.append({"role": "user", "content": user_input})
+
         with st.chat_message("user"):
             st.markdown(user_input)
 
