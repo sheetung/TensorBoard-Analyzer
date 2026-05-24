@@ -9,7 +9,7 @@ import streamlit as st
 load_dotenv()
 
 from sidebar import find_logs_dir, get_llm_config, render_sidebar
-from pages import tab_chart, tab_config, tab_diag, tab_ai, tab_chat
+from tabs import tab_chart, tab_config, tab_diag, tab_ai, tab_chat
 
 # 页面配置
 st.set_page_config(

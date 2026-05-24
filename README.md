@@ -96,7 +96,7 @@ TensorBoard-Analyzer/
 │   ├── analyzer.py     # TensorBoard 数据读取 + 规则诊断
 │   ├── llm_advisor.py  # 多模型 LLM 调用（OpenAI / Anthropic SDK）
 │   └── ai_chat.py      # 多轮对话逻辑
-├── pages/              # Tab 页面
+├── tabs/               # Tab 页面
 │   ├── tab_chart.py    # 对比曲线
 │   ├── tab_config.py   # 配置参数
 │   ├── tab_diag.py     # 自动诊断
